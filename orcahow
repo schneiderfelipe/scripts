@@ -1,0 +1,124 @@
+#!/bin/bash
+
+name=$1
+
+for name in "$@"
+do
+case $name in
+makets) cat <<eor
+! XTB2 NEB-TS NumFreq IRC
+
+*xyzfile 0 1 initial.xyz
+%neb
+ # neb_ts_xyzfile "guess.xyz"
+ neb_end_xyzfile "final.xyz"
+
+ interpolation XTB2TS
+ # interpolation XTB2
+ # preopt_ends true
+ reparam 35
+ nimages 9
+end
+
+%irc
+ maxiter 1000
+end
+eor
+    ;;
+readgeom) cat <<eor
+*xyzfile 0 1 geom.xyz
+eor
+    ;;
+makegeom) cat <<eor
+! XTB2 Opt
+eor
+    ;;
+solvate) cat <<eor
+%cpcm
+ smd true
+ smdsolvent "water"
+end
+eor
+    ;;
+distribute) cat <<eor
+%pal
+ nprocs 4
+end
+eor
+    ;;
+readgbw) cat <<eor
+%scf
+ guess moread
+ moinp "orbs.gbw"
+end
+eor
+    ;;
+makegbw) cat <<eor
+! PBE def2-SV(P) SlowConv
+eor
+    ;;
+readhess) cat <<eor
+%geom
+ inhess read
+ inhessname "freq.hess"
+end
+eor
+    ;;
+makehess) cat <<eor
+! XTB2 NumFreq
+eor
+    ;;
+looseopt) cat <<eor
+%geom
+ TolE    3e-5
+ TolMAXG 2e-3
+ TolRMSG 5e-4
+ TolMAXD 1e-2
+ TolRMSD 7e-3
+end
+eor
+    ;;
+normalopt) cat <<eor
+%geom
+ TolE    5e-6
+ TolMAXG 3e-4
+ TolRMSG 1e-4
+ TolMAXD 4e-3
+ TolRMSD 2e-3
+end
+eor
+    ;;
+tightopt) cat <<eor
+%geom
+ TolE    1e-6
+ TolMAXG 1e-4
+ TolRMSG 3e-5
+ TolMAXD 1e-3
+ TolRMSD 6e-4
+end
+eor
+    ;;
+verytightopt) cat <<eor
+%geom
+ TolE    2e-7
+ TolMAXG 3e-5
+ TolRMSG 8e-6
+ TolMAXD 2e-4
+ TolRMSD 1e-4
+end
+eor
+    ;;
+modifyinternal) cat <<eor
+%geom
+ modify_internal
+  {B 0 1 A}
+  {A 0 1 2 A}
+  {D 0 1 2 3 A}
+ end
+end
+eor
+    ;;
+*) echo "# invalid option $name" ;;
+esac
+echo
+done
