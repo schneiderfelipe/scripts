@@ -5,10 +5,30 @@ name=$1
 for name in "$@"
 do
 case $name in
+opt+freq) cat <<eor
+! revPBE D4 gCP(DFT/TZ) def2-TZVP Opt Freq TightOpt TightSCF Grid4 FinalGrid5
+eor
+    ;;
+optts+freq) cat <<eor
+! revPBE D4 gCP(DFT/TZ) def2-TZVP OptTS Freq IRC TightOpt TightSCF Grid4 FinalGrid5
+
+%geom
+ ts_mode
+  {B 1 2}
+ end
+ ts_active_atoms
+  {0 1 2 4}
+ end
+end
+
+%irc
+ maxiter 1000
+end
+eor
+    ;;
 makets) cat <<eor
 ! XTB2 NEB-TS NumFreq IRC
 
-*xyzfile 0 1 initial.xyz
 %neb
  # neb_ts_xyzfile "guess.xyz"
  neb_end_xyzfile "final.xyz"
@@ -25,11 +45,11 @@ end
 end
 eor
     ;;
-readgeom) cat <<eor
-*xyzfile 0 1 geom.xyz
+readxyz) cat <<eor
+*xyzfile 0 1 init.xyz
 eor
     ;;
-makegeom) cat <<eor
+makexyz) cat <<eor
 ! XTB2 Opt
 eor
     ;;
@@ -54,7 +74,7 @@ end
 eor
     ;;
 makegbw) cat <<eor
-! PBE def2-SV(P) SlowConv
+! revPBE def2-SV(P) VerySlowConv
 eor
     ;;
 readhess) cat <<eor
