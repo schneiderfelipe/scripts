@@ -28,7 +28,7 @@ end
 
 %irc
  maxiter 1000
- de_init_displ 1.0
+ de_init_displ 0.5
 end
 eor
     ;;
@@ -52,7 +52,7 @@ end
 
 %irc
  maxiter 1000
- de_init_displ 1.0
+ de_init_displ 0.5
 end
 eor
     ;;

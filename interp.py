@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 """Read .interp files from ORCA NEB calculations and create graphs."""
 
@@ -6,6 +6,12 @@ import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.constants import calorie
+from scipy.constants import kilo
+from scipy.constants import N_A
+from scipy.constants import physical_constants
+
+hartree, _, _ = physical_constants["Hartree energy"]
 
 
 def main():
@@ -15,8 +21,6 @@ def main():
     parser.add_argument("-a", "--all", action="store_true")
     args = parser.parse_args()
 
-    image = []
-    interp = []
     images = []
     interps = []
     for line in args.interp_file:
@@ -25,8 +29,8 @@ def main():
             fields = line.split()
             if fields[0] == "Iteration:":
                 try:
-                    images.append(image)
-                    interps.append(interp)
+                    images.append(np.array(image))
+                    interps.append(np.array(interp))
                 except UnboundLocalError:
                     pass
                 image = []
@@ -37,12 +41,21 @@ def main():
                 mode = "interps"
             else:
                 if mode == "images":
-                    image.append([float(entry) for entry in fields])
+                    image.append(np.array([float(entry) for entry in fields]))
                 if mode == "interps":
-                    interp.append([float(entry) for entry in fields])
+                    interp.append(np.array([float(entry) for entry in fields]))
 
     images = np.array(images)
     interps = np.array(interps)
+
+    forward_barrier = images[-1, :, 2].max() - images[-1, 0, 2]
+    backward_barrier = images[-1, :, 2].max() - images[-1, -1, 2]
+    print(
+        f"forward barrier  = {forward_barrier:6.4f} Eh = {forward_barrier * hartree * N_A / kilo:5.1f} kJ/mol = {forward_barrier * hartree * N_A / (kilo * calorie):5.1f} kcal/mol"
+    )
+    print(
+        f"backward barrier = {backward_barrier:6.4f} Eh = {backward_barrier * hartree * N_A / kilo:5.1f} kJ/mol = {backward_barrier * hartree * N_A / (kilo * calorie):5.1f} kcal/mol"
+    )
 
     if args.all:
         for i in range(len(images) - 1):

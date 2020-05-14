@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 """Read .out files from ORCA IRC calculations and create graphs."""
 
@@ -6,53 +6,16 @@ import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.constants import calorie
+from scipy.constants import kilo
+from scipy.constants import N_A
+from scipy.constants import physical_constants
 from scipy import interpolate
 
+from rmsd import calc_rmsd
+from rmsd import read_xyz
 
-def calc_rmsd(P, Q, translate=True):
-    """Calculate the RMSD between P and Q using Kabsch algorithm.
-
-    Parameters
-    ----------
-    P, Q : array-like
-    translate : bool
-
-    Returns
-    -------
-    float
-
-    Examples
-    --------
-    >>> P = [[0, 0, 0],
-    ...      [1, 1, 1]]
-    >>> calc_rmsd(P, P)
-    0.0
-    >>> Q = [[1, 1, 1],
-    ...      [2, 2, 2]]
-    >>> calc_rmsd(P, Q)
-    0.0
-    >>> P = [[-3.652796902, 0.000000000, -4.445975658],
-    ...      [-3.527558151, 0.000000000, -3.430150234],
-    ...      [-4.501637325, 0.000000000, -3.833697320]]
-    >>> Q = [[ 1.885538972, 0.000000000, -0.577489796],
-    ...      [ 0.911459798, 0.000000000,  0.201773543],
-    ...      [ 1.165525626, 1.078706033, -0.490031274]]
-    >>> calc_rmsd(P, Q)
-    0.140663071340813
-    """
-    P, Q = np.asanyarray(P), np.asanyarray(Q)
-    if translate:
-        P = P - P.mean(axis=0)
-        Q = Q - Q.mean(axis=0)
-
-    V, s, W = np.linalg.svd(P.T @ Q)
-    if np.linalg.det(V) * np.linalg.det(W) < 0:
-        s[-1] = -s[-1]
-        V[:, -1] = -V[:, -1]
-
-    U = V @ W
-    P = P @ U
-    return np.sqrt(np.sum((P - Q) ** 2) / len(P))
+hartree, _, _ = physical_constants["Hartree energy"]
 
 
 def main():
@@ -77,39 +40,32 @@ def main():
             else:
                 break
 
-    with open(
-        args.out_file.name.replace(".out", "_TSOpt_IRC_Full_trj.xyz"), "r"
-    ) as xyz_file:
-        lines = xyz_file.readlines()
-        natom = int(lines[0])
-        m = 2 + natom
-        nstruct = len(lines) // m
-
-        coords = []
-        for i in range(nstruct):
-            struct = []
-            initial = i * m + 2
-            for j in range(initial, initial + natom):
-                struct.append([float(x) for x in lines[j].split()[1:]])
-            coords.append(np.array(struct))
-
-        rmsd = [0.0]
-        for i in range(1, len(coords)):
-            rmsd.append(rmsd[-1] + calc_rmsd(coords[i - 1], coords[i]))
-        rmsd = np.array(rmsd)
+    coords = read_xyz(args.out_file.name.replace(".out", "_TSOpt_IRC_Full_trj.xyz"))
+    rmsd = [0.0]
+    for i in range(1, len(coords)):
+        rmsd.append(rmsd[-1] + calc_rmsd(coords[i - 1], coords[i]))
+    rmsd = np.array(rmsd)
 
     data = np.array(data)
     # xi = (data[:, 0] - data[:, 0].min()) / data[:, 0].max()
     xi = rmsd
     y = data[:, 1] - data[:, 1].min()
 
+    forward_barrier = y.max() - y[0]
+    backward_barrier = y.max() - y[-1]
+    print(
+        f"forward barrier  = {forward_barrier:6.4f} Eh = {forward_barrier * hartree * N_A / kilo:5.1f} kJ/mol = {forward_barrier * hartree * N_A / (kilo * calorie):5.1f} kcal/mol"
+    )
+    print(
+        f"backward barrier = {backward_barrier:6.4f} Eh = {backward_barrier * hartree * N_A / kilo:5.1f} kJ/mol = {backward_barrier * hartree * N_A / (kilo * calorie):5.1f} kcal/mol"
+    )
+
     if not args.classic:
         xi_new = np.linspace(xi.min(), xi.max(), 10000)
 
         # points = ~np.isclose(xi, xi[ts_step])
         # f = interpolate.InterpolatedUnivariateSpline(xi[points], y[points])
-        f = interpolate.UnivariateSpline(xi, y, k=5, s=1e-8)
-        print(f.get_residual())
+        f = interpolate.InterpolatedUnivariateSpline(xi, y, k=4)
         fp = f.derivative()
         fpp = f.derivative(n=2)
 
@@ -135,6 +91,8 @@ def main():
         plt.xlabel(r"IRC ($\xi$)")
         plt.ylabel(r"Reaction Force, F($\xi$) [Eh/$\Delta\xi$]")
 
+        # TODO(schneiderfelipe): get max and min force along the coordinate
+        # and do the usual analysis
         plt.subplot(313)
         rfc = fpp(xi_new)
         plt.plot(xi_new, rfc, "--")
