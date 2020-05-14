@@ -40,9 +40,9 @@ makets) cat <<eor
 
  interpolation XTB2TS
  # interpolation XTB2
- # preopt_ends true
+ preopt_ends true
  reparam 35
- nimages 9
+ nimages 11
 end
 
 %geom
