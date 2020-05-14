@@ -5,6 +5,11 @@ name=$1
 for name in "$@"
 do
 case $name in
+singlepoint) cat <<eor
+! DLPNO-CCSD(T) gCP(HF/TZ) def2-TZVP def2-TZVP/C TightSCF Grid5 NoFinalGrid GridX6 NoFinalGridX
+%maxcore 1000
+eor
+    ;;
 opt+freq) cat <<eor
 ! revPBE D4 gCP(DFT/TZ) def2-TZVP Opt Freq TightOpt TightSCF Grid4 FinalGrid5
 eor
