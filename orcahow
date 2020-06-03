@@ -6,16 +6,16 @@ for name in "$@"
 do
 case $name in
 singlepoint) cat <<eor
-! DLPNO-CCSD(T) gCP(HF/TZ) def2-TZVP def2-TZVP/C TightSCF Grid5 NoFinalGrid GridX6 NoFinalGridX
+! DLPNO-CCSD(T) gCP(HF/TZ) def2-TZVP def2-TZVP/C TightSCF Grid5 NoFinalGrid GridX6 NoFinalGridX PrintBasis PrintMOs NBO
 %maxcore 1000
 eor
     ;;
 opt+freq) cat <<eor
-! revPBE D4 gCP(DFT/TZ) def2-TZVP Opt Freq TightOpt TightSCF Grid4 FinalGrid5
+! revPBE D4 gCP(DFT/TZ) def2-TZVP Opt Freq TightOpt TightSCF Grid4 FinalGrid5 PrintBasis PrintMOs NBO
 eor
     ;;
 optts+freq) cat <<eor
-! revPBE D4 gCP(DFT/TZ) def2-TZVP OptTS Freq IRC TightOpt TightSCF Grid4 FinalGrid5
+! revPBE D4 gCP(DFT/TZ) def2-TZVP OptTS Freq IRC TightOpt TightSCF Grid4 FinalGrid5 PrintBasis PrintMOs NBO
 
 %geom
  ts_mode
@@ -28,7 +28,9 @@ end
 
 %irc
  maxiter 1000
- de_init_displ 0.5
+ de_init_displ 0.25
+ TolMAXG 1e-3
+ TolRMSG 2e-4
 end
 eor
     ;;
@@ -52,7 +54,9 @@ end
 
 %irc
  maxiter 1000
- de_init_displ 0.5
+ de_init_displ 0.25
+ TolMAXG 1e-3
+ TolRMSG 2e-4
 end
 eor
     ;;
@@ -61,7 +65,7 @@ readxyz) cat <<eor
 eor
     ;;
 makexyz) cat <<eor
-! XTB2 Opt
+! XTB2 Opt TightOpt
 eor
     ;;
 scan) cat <<eor
@@ -94,7 +98,7 @@ end
 eor
     ;;
 makegbw) cat <<eor
-! revPBE def2-SV(P) VerySlowConv
+! revPBE def2-SV(P) VerySlowConv PrintBasis PrintMOs NBO
 eor
     ;;
 readhess) cat <<eor
