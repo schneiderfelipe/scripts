@@ -7,6 +7,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import MDAnalysis as mda
+import MDAnalysis.analysis.pca as pca
 from MDAnalysis.lib import distances
 from scipy.constants import calorie
 from scipy.constants import kilo
@@ -79,6 +80,22 @@ def main():
             plt.show()
         elif code[0] == "s":
             print(selection)
+            if selection is not None:
+                print(selection_text)
+        elif code[0] == "pca":
+            if selection is None:
+                print("empty selection, doing nothing")
+                continue
+
+            p = pca.PCA(u, select=selection_text)
+            p.run()
+
+            n_pcs = np.where(p.cumulated_variance > 0.95)[0][0]
+            print(n_pcs)
+            print(p.cumulated_variance[0:n_pcs])
+            pca_space = p.transform(selection, n_components=n_pcs)
+            print(pca_space)
+            print(pca.cosine_content(pca_space, 0))
         elif code[0] == "p":
             if selection is None:
                 print("empty selection, doing nothing")
@@ -167,7 +184,8 @@ def main():
 
         else:
             try:
-                selection = u.select_atoms(" ".join(code))
+                selection_text = " ".join(code)
+                selection = u.select_atoms(selection_text)
             except mda.exceptions.SelectionError as e:
                 print(e)
 

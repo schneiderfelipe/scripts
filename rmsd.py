@@ -272,6 +272,7 @@ def read_xyz(path_file_or_str):
         nstruct = len(lines) // m
 
         atomnos = []
+        comments = []
         atomcoords = []
         for i in range(nstruct):
             nos = []
@@ -282,8 +283,9 @@ def read_xyz(path_file_or_str):
                 nos.append(atomic_number[fields[0]])
                 coords.append([float(x) for x in fields[1:]])
             atomnos.append(np.array(nos))
+            comments.append(lines[i * m + 1])
             atomcoords.append(np.array(coords))
-        return atomnos, atomcoords
+        return atomnos, comments, atomcoords
 
     try:
         with open(path_file_or_str, "r") as xyz_file:
@@ -292,6 +294,27 @@ def read_xyz(path_file_or_str):
         return _process(path_file_or_str.readlines())
     except FileNotFoundError:
         return _process(path_file_or_str.split("\n"))
+
+
+def write_xyz(atomnos, atomcoords):
+    """Format a string as xyz coordinates.
+
+    Parameters
+    ----------
+    atomnos, atomcoords : array-like
+
+    Returns
+    -------
+    str
+    """
+    lines = []
+    for no, coord in zip(atomnos, atomcoords):
+        lines.append(
+            f"{element[no]:2s} {coord[0]:12.6f} {coord[1]:12.6f} {coord[2]:12.6f}"
+        )
+
+    lines = "\n".join(lines)
+    return f"{len(atomnos)}" "\n\n" f"{lines}"
 
 
 def calc_rmsd(P, Q, translate=True):
@@ -358,7 +381,7 @@ def main():
     coords = []
     names = []
     for xyz_file in args.xyz_files:
-        coords.append(read_xyz(xyz_file)[1])
+        coords.append(read_xyz(xyz_file)[2])
         names.append(xyz_file.name)
 
     print("RMSD:")

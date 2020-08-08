@@ -6,16 +6,18 @@ for name in "$@"
 do
 case $name in
 singlepoint) cat <<eor
-! DLPNO-CCSD(T) gCP(HF/TZ) def2-TZVP def2-TZVP/C TightSCF Grid5 NoFinalGrid GridX6 NoFinalGridX PrintBasis PrintMOs NBO
-%maxcore 1000
+! DLPNO-CCSD(T) gCP(HF/TZ) def2-TZVP def2-TZVP/C TightSCF Grid5 FinalGrid6 GridX6 NoFinalGridX PrintBasis PrintMOs NBO
+%maxcore 2000
 eor
     ;;
 opt+freq) cat <<eor
-! revPBE D4 gCP(DFT/TZ) def2-TZVP Opt Freq TightOpt TightSCF Grid4 FinalGrid5 PrintBasis PrintMOs NBO
+! BLYP D4 gCP(DFT/TZ) def2-TZVP Opt Freq TightOpt TightSCF Grid4 FinalGrid5 PrintBasis PrintMOs NBO
+# BLYP > B97 > revPBE are excellent choices for geometry optimizations
 eor
     ;;
 optts+freq) cat <<eor
-! revPBE D4 gCP(DFT/TZ) def2-TZVP OptTS Freq IRC TightOpt TightSCF Grid4 FinalGrid5 PrintBasis PrintMOs NBO
+! BLYP D4 gCP(DFT/TZ) def2-TZVP OptTS Freq IRC TightOpt TightSCF Grid4 FinalGrid5 PrintBasis PrintMOs NBO
+# BLYP > B97 > revPBE are excellent choices for geometry optimizations
 
 %geom
  ts_mode
@@ -29,8 +31,8 @@ end
 %irc
  maxiter 1000
  de_init_displ 0.25
- TolMAXG 1e-3
- TolRMSG 2e-4
+ TolMAXG 1.65e-3
+ TolRMSG 6.72e-4
 end
 eor
     ;;
@@ -55,8 +57,8 @@ end
 %irc
  maxiter 1000
  de_init_displ 0.25
- TolMAXG 1e-3
- TolRMSG 2e-4
+ TolMAXG 1.65e-3
+ TolRMSG 6.72e-4
 end
 eor
     ;;
@@ -98,13 +100,20 @@ end
 eor
     ;;
 makegbw) cat <<eor
-! revPBE def2-SV(P) VerySlowConv PrintBasis PrintMOs NBO
+! B97 def2-SV(P) LooseSCF VerySlowConv PrintBasis PrintMOs NBO
 eor
     ;;
 readhess) cat <<eor
 %geom
  inhess read
  inhessname "freq.hess"
+end
+eor
+    ;;
+calchess) cat <<eor
+%geom
+ calc_hess true
+ numhess true
 end
 eor
     ;;

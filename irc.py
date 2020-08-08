@@ -40,7 +40,11 @@ def main():
             else:
                 break
 
-    coords = read_xyz(args.out_file.name.replace(".out", "_TSOpt_IRC_Full_trj.xyz"))[1]
+    try:
+        coords = read_xyz(args.out_file.name.replace(".out", "_TSOpt_IRC_Full_trj.xyz"))[2]
+    except ValueError:
+        coords = read_xyz(args.out_file.name.replace(".out", "_IRC_Full_trj.xyz"))[2]
+
     rmsd = [0.0]
     for i in range(1, len(coords)):
         rmsd.append(rmsd[-1] + calc_rmsd(coords[i - 1], coords[i]))

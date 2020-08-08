@@ -68,9 +68,9 @@ def main():
     args = parser.parse_args()
 
     n = 0
-    auto_n = False
+    auto_n = True
     images = []
-    method, theory = "idpp", None
+    method, theory = "linear", None
     for line in args.commands:
         for command in line.split():
             command = command.strip()
