@@ -263,7 +263,9 @@ def read_xyz(path_file_or_str):
 
     Returns
     -------
-    atomnos, atomcoords : array-like
+    atomnos : array-like
+    comments : str
+    atomcoords : array-like
     """
 
     def _process(lines):
@@ -283,7 +285,7 @@ def read_xyz(path_file_or_str):
                 nos.append(atomic_number[fields[0]])
                 coords.append([float(x) for x in fields[1:]])
             atomnos.append(np.array(nos))
-            comments.append(lines[i * m + 1])
+            comments.append(lines[i * m + 1].strip("\n"))
             atomcoords.append(np.array(coords))
         return atomnos, comments, atomcoords
 
@@ -296,7 +298,7 @@ def read_xyz(path_file_or_str):
         return _process(path_file_or_str.split("\n"))
 
 
-def write_xyz(atomnos, atomcoords):
+def write_xyz(atomnos, atomcoords, comment=""):
     """Format a string as xyz coordinates.
 
     Parameters
@@ -314,7 +316,7 @@ def write_xyz(atomnos, atomcoords):
         )
 
     lines = "\n".join(lines)
-    return f"{len(atomnos)}" "\n\n" f"{lines}"
+    return f"{len(atomnos)}\n{comment}\n{lines}"
 
 
 def calc_rmsd(P, Q, translate=True):
