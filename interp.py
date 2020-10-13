@@ -17,7 +17,9 @@ hartree, _, _ = physical_constants["Hartree energy"]
 def main():
     """Run main procedure."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("interp_file", type=argparse.FileType("r"), default="-")
+    parser.add_argument(
+        "interp_file", type=argparse.FileType("r"), default="-"
+    )
     parser.add_argument("-a", "--all", action="store_true")
     args = parser.parse_args()
 
@@ -48,13 +50,21 @@ def main():
     images = np.array(images)
     interps = np.array(interps)
 
-    forward_barrier = images[-1, :, 2].max() - images[-1, 0, 2]
-    backward_barrier = images[-1, :, 2].max() - images[-1, -1, 2]
+    i_max = images[-1, :, 2].argmax()
+    forward_barrier = images[-1, i_max, 2] - images[-1, 0, 2]
+    backward_barrier = images[-1, i_max, 2] - images[-1, -1, 2]
     print(
-        f"forward barrier  = {forward_barrier:6.4f} Eh = {forward_barrier * hartree * N_A / kilo:5.1f} kJ/mol = {forward_barrier * hartree * N_A / (kilo * calorie):5.1f} kcal/mol"
+        f"barrier is at the {i_max + 1}th (out of {len(images[-1, :, 2])}) position"
     )
     print(
-        f"backward barrier = {backward_barrier:6.4f} Eh = {backward_barrier * hartree * N_A / kilo:5.1f} kJ/mol = {backward_barrier * hartree * N_A / (kilo * calorie):5.1f} kcal/mol"
+        f"forward barrier  = {forward_barrier:6.4f} Eh "
+        f"= {forward_barrier * hartree * N_A / kilo:5.1f} kJ/mol "
+        f"= {forward_barrier * hartree * N_A / (kilo * calorie):5.1f} kcal/mol"
+    )
+    print(
+        f"backward barrier = {backward_barrier:6.4f} Eh "
+        f"= {backward_barrier * hartree * N_A / kilo:5.1f} kJ/mol "
+        f"= {backward_barrier * hartree * N_A / (kilo * calorie):5.1f} kcal/mol"
     )
 
     if args.all:
