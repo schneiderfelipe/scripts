@@ -2,7 +2,9 @@
 
 """Swing molecules based on normal coordinates."""
 
+import os
 import argparse
+import shutil
 from collections import defaultdict
 
 import numpy as np
@@ -14,7 +16,11 @@ from scipy.constants import physical_constants
 from scipy.optimize import root
 from scipy.optimize import minimize
 from scipy.optimize import minimize_scalar
-from xtb.ase.calculator import XTB
+
+try:
+    from xtb.ase.calculator import XTB
+except ModuleNotFoundError as e:
+    print("WARNING: won't be able to use XTB")
 
 hartree, _, _ = physical_constants["Hartree energy"]
 
@@ -81,6 +87,12 @@ def main():
     )
 
     parser.add_argument(
+        "--pm3", help="use PM3", action="store_true",
+    )
+    parser.add_argument(
+        "--b97-3c", help="use B97-3c", action="store_true",
+    )
+    parser.add_argument(
         "--minimize", action="store_true",
     )
     parser.add_argument(
@@ -88,6 +100,7 @@ def main():
     )
     parser.add_argument("--max-omega", type=float, default=1.0)
     parser.add_argument("--tol", type=float, default=1e-3)
+    parser.add_argument("--nprocs", type=int, default=4)
     args = parser.parse_args()
     print(args)
 
@@ -109,22 +122,34 @@ def main():
         )
     else:
 
-        def allow_keyword(keyword):
-            for forbidden in {"freq", "opt", "print"}:
-                if forbidden in keyword.lower():
-                    return False
-            return True
+        if args.b97_3c:
+            method = "B97-3c D3BJ def2-SV(P)"
+        elif args.pm3:
+            method = "PM3"
+        else:
 
-        keywords = [
-            keyword
-            for keyword in data.metadata["keywords"]
-            if allow_keyword(keyword)
-        ]
-        method = " ".join(keywords)
+            def allow_keyword(keyword):
+                for forbidden in {"freq", "opt", "irc", "print"}:
+                    if forbidden in keyword.lower():
+                        return False
+                return True
+
+            keywords = [
+                keyword
+                for keyword in data.metadata["keywords"]
+                if allow_keyword(keyword)
+            ]
+
+            method = " ".join(keywords)
+
         solvent = args.solvent
-        blocks = f"%pal\n nprocs 6\nend\n%scf\n maxiter {args.iterations}\nend"
-        if solvent != "none":
+        blocks = f"%pal\n nprocs {args.nprocs}\nend\n%scf\n maxiter {args.iterations}\nend"
+        if solvent != "none" and not args.pm3:
             blocks += f'\n%cpcm\n smd true\n smdsolvent "{solvent}"\nend'
+
+        if "ORCA_COMMAND" not in os.environ:
+            # For parallel runs ORCA has to be called with full pathname
+            os.environ["ORCA_COMMAND"] = shutil.which("orca")
 
         calc = ORCA(
             label="012345_swing", orcasimpleinput=method, orcablocks=blocks
