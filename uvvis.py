@@ -6,13 +6,22 @@ import argparse
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import matplotlib
 import matplotlib.pyplot as plt
 from cclib import ccopen
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize_scalar
 from scipy.stats import cauchy, norm
 
-sns.set(style="white", palette="colorblind")
+sns.set(style="ticks", palette="colorblind", font_scale=1.25)
+
+
+def process_name(name: str) -> str:
+    """A hack to make compound names bold in some common cases."""
+    if "+" in name:
+        pieces = name.split("+", 1)
+        name = f"$\\bf{{{pieces[0]}}}$+{pieces[1]}"
+    return name
 
 
 def broaden_spectrum(
@@ -51,8 +60,10 @@ def main():
     parser.add_argument("logfiles", metavar="logfile", nargs="+")
     parser.add_argument("--xmin", default=400.0, type=float)
     parser.add_argument("--xmax", default=700.0, type=float)
-    parser.add_argument("--xshift", default=90.0, type=float)
+    parser.add_argument("--xshift", default=80.0, type=float)
+    parser.add_argument("--normalize", action="store_true")
     parser.add_argument("--broad-only", action="store_true")
+    parser.add_argument("--save-path")
     args = parser.parse_args()
 
     for logfile_path in args.logfiles:
@@ -71,7 +82,8 @@ def main():
             spectrum = pd.read_csv(spectrum_path, sep="\s+", index_col=0)
 
             x = spectrum.index
-            y = spectrum["TotalSpectrum"] / spectrum["TotalSpectrum"].max()
+            if args.normalize:
+                y = spectrum["TotalSpectrum"] / spectrum["TotalSpectrum"].max()
         else:
             if spectrum_path_found:
                 print("Ignoring found .spectrum file, using broadened data")
@@ -80,33 +92,38 @@ def main():
             data = ccopen(logfile_path).parse()
             wavelengths = 1e7 / data.etenergies  # nm conversion
 
-            x = np.linspace(
-                wavelengths.min() - 100.0, wavelengths.max() + 100.0, num=1000
-            )
+            xmin = min(args.xmin, wavelengths.min())
+            xmax = max(args.xmax, wavelengths.max())
+            x = np.linspace(xmin - 100.0, xmax + 100.0, num=1000)
             y = broaden_spectrum(x, wavelengths, data.etoscs, scale=40.0)
-            y = y / y.max()
+            if args.normalize:
+                y = y / y.max()
 
         if args.xshift:
             print(f"Shifting all wavelengths by {args.xshift} nm")
             x += args.xshift
-        plt.plot(x, y, label=name)
+        plt.plot(x, y, label=process_name(name))
+        xmin = max(args.xmin, x.min())
+        xmax = min(args.xmax, x.max())
 
-        f = interp1d(
-            x, y, kind="cubic", bounds_error=False, fill_value="extrapolate"
-        )
+        f = interp1d(x, y, kind="cubic")
         res = minimize_scalar(
             lambda t: -f(t),
-            bracket=(args.xmin, args.xmax),
-            bounds=(args.xmin, args.xmax),
+            bracket=(xmin, xmax),
+            bounds=(xmin, xmax),
             method="bounded",
         )
         print(res)
 
     plt.xlim(args.xmin, args.xmax)
-    plt.xlabel("wavelength (nm)")
-    plt.ylabel("arbitrary units")
+    plt.xlabel("Wavelength [nm]")
+    plt.ylabel("Arbitrary units")
     plt.legend()
-    plt.show()
+
+    if args.save_path:
+        plt.savefig(args.save_path, dpi=300, bbox_inches="tight")
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":
