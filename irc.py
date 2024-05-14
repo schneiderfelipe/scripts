@@ -41,9 +41,13 @@ def main():
                 break
 
     try:
-        coords = read_xyz(args.out_file.name.replace(".out", "_TSOpt_IRC_Full_trj.xyz"))[2]
+        coords = read_xyz(
+            args.out_file.name.replace(".out", "_TSOpt_IRC_Full_trj.xyz")
+        )[2]
     except ValueError:
-        coords = read_xyz(args.out_file.name.replace(".out", "_IRC_Full_trj.xyz"))[2]
+        coords = read_xyz(
+            args.out_file.name.replace(".out", "_IRC_Full_trj.xyz")
+        )[2]
 
     rmsd = [0.0]
     for i in range(1, len(coords)):
@@ -102,7 +106,9 @@ def main():
         plt.plot(xi_new, rfc, "--")
         plt.vlines(xi[ts_step], rfc.min(), rfc.max())
         plt.xlabel(r"IRC ($\xi$)")
-        plt.ylabel(r"Reaction Force Constant, $\kappa$($\xi$) [Eh/$\Delta\xi^2$]")
+        plt.ylabel(
+            r"Reaction Force Constant, $\kappa$($\xi$) [Eh/$\Delta\xi^2$]"
+        )
     else:
         plt.subplot(212)
         plt.plot(xi, data[:, 3], "o", label="max(|G|)")
