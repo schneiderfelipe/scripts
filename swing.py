@@ -96,17 +96,24 @@ def main():
         "--minimize", action="store_true",
     )
     parser.add_argument(
+        "--use-opt-data", action="store_true",
+    )
+    parser.add_argument(
         "--transition-state", action="store_true",
     )
     parser.add_argument("--max-omega", type=float, default=1.0)
     parser.add_argument("--tol", type=float, default=1e-3)
-    parser.add_argument("--nprocs", type=int, default=4)
+    parser.add_argument("--nprocs", type=int, default=2)  # len(os.sched_getaffinity(0))) counts threads as well!
     args = parser.parse_args()
     print(args)
 
     data = ccopen(args.logfile).parse()
     initial_positions = data.atomcoords[-1]
-    atoms = Atoms(numbers=data.atomnos, positions=initial_positions)
+    charges = data.atomcharges["lowdin"]  # TODO: use "mulliken" as fallback
+    total_charge = round(np.sum(charges))
+    atoms = Atoms(numbers=data.atomnos, positions=initial_positions, charges=charges)
+    print(data.atomcharges)
+    print(total_charge)
 
     if args.gfn:
         method = f"GFN{args.gfn}-xTB"
@@ -152,7 +159,7 @@ def main():
             os.environ["ORCA_COMMAND"] = shutil.which("orca")
 
         calc = ORCA(
-            label="012345_swing", orcasimpleinput=method, orcablocks=blocks
+            label="012345_swing", orcasimpleinput=method, orcablocks=blocks, charge=total_charge,
         )
 
     print(f"*** {method} ***")
@@ -246,6 +253,14 @@ def main():
         print("@ choosing initial guess for global search")
         if n_indices > 1:
             guesses.append(np.sum(guesses, axis=0))
+
+        for direction in [-1, 1]:
+            for magnitude in [1.0, 0.5, 0.25, 0.125]:
+                for i in indices:
+                    guess = np.zeros_like(indices, dtype=float)
+                    guess[i] = direction * magnitude * args.max_omega
+                    guesses.append(guess)
+
         x0 = guesses[np.argmin([f(guess) for guess in guesses])]
 
         print("@ searching in all directions")
@@ -286,10 +301,33 @@ def main():
         plt.tight_layout()
         plt.show()
 
+    if args.use_opt_data and not args.transition_state:
+        print("@ comparing with the best geometries during minimization")
+
+        atoms.set_positions(best_positions)
+        potential_best = 1e3 * (atoms.get_potential_energy() - potential_min)
+        print(f"    : best potential:           {potential_best} meV")
+
+        for i, atomcoord in enumerate(data.atomcoords):
+            if data.scfenergies[i] >= data.scfenergies[0] or \
+                    data.scfenergies[i] > data.scfenergies[-1]:
+                continue
+
+            atoms.set_positions(atomcoord)
+            potential_cur = 1e3 * (atoms.get_potential_energy() - potential_min)
+
+            if potential_cur < potential_best:
+                print(f"    : previous {i}-th geometry is best so far")
+
+                best_positions = atomcoord
+                potential_best = potential_cur
+
+                print(f"    : best potential:           {potential_best} meV")
+
     print("@ writing best geometry to swinged.xyz")
     # TODO(schneiderfelipe): print a RMSD between initial and final structures
     atoms.set_positions(best_positions)
-    atoms.write("swinged.xyz", format="xyz", plain=True)
+    atoms.write("swinged.xyz", format="xyz")
 
 
 if __name__ == "__main__":
