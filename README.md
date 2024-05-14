@@ -1,6 +1,7 @@
 # scripts
 
-A colection of scripts.
+A collection of scripts.
+Mostly computational chemistry.
 
 ## Installation
 
@@ -19,3 +20,17 @@ Now add the following lines to your `~/.bashrc` (or, if you use Zsh,
 export SCRIPTS=~/scripts
 source $SCRIPTS/config_env.sh
 ```
+
+## Scripts
+
+- `interact.py`
+- `irc.py`
+- `metadyn.py`
+- `rmsd.py`
+- `swing.py`
+- `wavejam.py`
+- `interp.py`
+- `itp.py`
+- `minimize.py`
+- `shuffle.py`
+- `uvvis.py`
