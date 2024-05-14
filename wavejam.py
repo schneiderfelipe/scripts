@@ -22,13 +22,19 @@ def convert(infile, outfile):
 
     if inext == "gbw":
         if outext == "mkl":
-            p = subprocess.run(["orca_2mkl", inbase, "-mkl"], stdout=subprocess.PIPE)
+            p = subprocess.run(
+                ["orca_2mkl", inbase, "-mkl"], stdout=subprocess.PIPE
+            )
         elif outext == "molden":
-            p = subprocess.run(["orca_2mkl", inbase, "-molden"], stdout=subprocess.PIPE)
+            p = subprocess.run(
+                ["orca_2mkl", inbase, "-molden"], stdout=subprocess.PIPE
+            )
             os.rename(f"{inbase}.molden.input", outfile)
     elif inext == "mkl":
         if outext == "gbw":
-            p = subprocess.run(["orca_2mkl", inbase, "-gbw"], stdout=subprocess.PIPE)
+            p = subprocess.run(
+                ["orca_2mkl", inbase, "-gbw"], stdout=subprocess.PIPE
+            )
     else:
         # TODO(schneiderfelipe): convert to pdb using OpenBabel? If possible,
         # the result is improved, but use the code below if something fails.
