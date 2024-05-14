@@ -165,7 +165,9 @@ def main():
             # print(res.statistic)
             mask = np.isnan(res.statistic)
             res.statistic[mask] = np.interp(
-                np.flatnonzero(mask), np.flatnonzero(~mask), res.statistic[~mask]
+                np.flatnonzero(mask),
+                np.flatnonzero(~mask),
+                res.statistic[~mask],
             )
             # print(res.statistic)
 
