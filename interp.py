@@ -47,6 +47,10 @@ def main():
                 if mode == "interps":
                     interp.append(np.array([float(entry) for entry in fields]))
 
+    # Add the last set of data
+    images.append(np.array(image))
+    interps.append(np.array(interp))
+
     images = np.array(images)
     interps = np.array(interps)
 
