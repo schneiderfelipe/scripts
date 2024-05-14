@@ -28,12 +28,17 @@ from rmsd import calc_rmsd
 
 # TODO(schneiderfelipe): transform in command-line parameters
 prefix = "interpolator"
-neb_kwargs = {"dynamic_relaxation": True, "scale_fmax": 3.0, "method": "aseneb"}
+neb_kwargs = {
+    "dynamic_relaxation": True,
+    "scale_fmax": 3.0,
+    "method": "aseneb",
+}
 calc_kwargs = {"charge": 0, "mult": 1, "label": prefix}
 opt_kwargs = {"trajectory": f"{prefix}.traj"}
 run_kwargs = {"fmax": 3.0, "steps": 10}
 
 
+# TODO(schneiderfelipe): support reading pieces of the path from .xyz files
 # TODO(schneiderfelipe): support minimizing ends
 # TODO(schneiderfelipe): support constraints (https://wiki.fysik.dtu.dk/ase/tutorials/neb/diffusion.html#diffusion-tutorial)
 # TODO(schneiderfelipe): support writing final complete traj file (https://wiki.fysik.dtu.dk/ase/ase/neb.html#trajectories)
@@ -63,7 +68,16 @@ def main():
         help="piecewise nudged-elastic band only",
     )
     parser.add_argument(
-        "--no-opt", dest="opt", action="store_false", help="use final states as given"
+        "--no-opt",
+        dest="opt",
+        action="store_false",
+        help="use final states as given",
+    )
+    # TODO(schneiderfelipe): check extension .allxyz instead of using this flag!
+    parser.add_argument(
+        "--use-allxyz-format",
+        action="store_true",
+        help="use ORCA's .allxyz format",
     )
     args = parser.parse_args()
 
@@ -76,19 +90,26 @@ def main():
             command = command.strip()
             if command == "linear":
                 method, theory = "linear", None
+                print("@ switching to linear interpolation")
             elif command == "idpp":
                 method, theory = "idpp", None
+                print("@ switching to IDPP interpolation")
             elif command in {"pm3", "am1", "xtb2"}:
                 # method == "idpp"
                 theory = command
+                print(f"@ switching to {command.upper()}")
             elif command == "auto":
                 auto_n = True
+                print("@ using automatic number of points")
             else:
                 try:
                     structure = io.read(command)
+                    print(f"@ reading structure from '{command}'")
                 except FileNotFoundError:
                     try:
                         n = int(command)
+                        auto_n = False
+                        print(f"@ using {n} points")
                     except ValueError:
                         parser.error(
                             f"could not understand command or find file: '{command}'"
@@ -98,7 +119,8 @@ def main():
                 if len(images) > 0 and (auto_n or n > 0):
                     if auto_n:
                         rmsd = calc_rmsd(
-                            images[-1].get_positions(), structure.get_positions()
+                            images[-1].get_positions(),
+                            structure.get_positions(),
                         )
                         n = max(1, int(rmsd / 0.3))
 
@@ -107,11 +129,15 @@ def main():
                     pieces += [structure]
                     if method == "idpp":
                         neb = NEB(
-                            pieces, remove_rotation_and_translation=False, **neb_kwargs
+                            pieces,
+                            remove_rotation_and_translation=False,
+                            **neb_kwargs,
                         )
                     else:
                         neb = NEB(
-                            pieces, remove_rotation_and_translation=True, **neb_kwargs
+                            pieces,
+                            remove_rotation_and_translation=True,
+                            **neb_kwargs,
                         )
                     neb.interpolate(method)
                     if theory is not None:
@@ -182,7 +208,11 @@ def main():
         opt.run(**run_kwargs)
 
     with redirect_stdout(args.output_file):
-        io.write("-", images, format="xyz", plain=True)
+        io.write("-", images[0], format="xyz", plain=True)
+        for image in images:
+            if args.use_allxyz_format:
+                print(">")
+            io.write("-", image, format="xyz", plain=True)
 
     # some programs (e.g., Chemcraft) won't read without a newline at the end
     # but even with this, Chemcraft won't read if there are only 2 strucures
